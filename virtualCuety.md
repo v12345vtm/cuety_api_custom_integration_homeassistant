@@ -18,7 +18,7 @@ Armed with this insight, we pivoted to a Python `BaseHTTPRequestHandler` server 
 
 The script (`virtual_cuety_http_port7000.py`) uses Python's built-in libraries (`http.server` and `json`) so **no external dependencies or `pip` installations are required**.
 
-1. **HTTP Server Binding:** Binds an HTTP server to port `7000` on `0.0.0.0` (all local network interfaces).
+1. **HTTP Server Binding:** Binds an HTTP server to port `80` on `0.0.0.0` (all local network interfaces).
 2. **Request Routing (`do_GET`):** Parses incoming HTTP request paths:
    - `/ajax/hello`: Responds with a successful hello handshake payload.
    - `/ajax/pb...`: Emulates playback intensity, speed, cue, and active states.
