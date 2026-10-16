@@ -1,124 +1,87 @@
-# Virtual Cuety LPU-2 Mock Server for Home Assistant
+# Cuety Integratie voor Home Assistant
 
-A lightweight Python-based HTTP mock server designed to emulate the Showtec Cuety LPU-2 lighting controller's HTTP API. This tool is ideal for testing Home Assistant custom integrations or third-party control scripts locally without needing physical hardware.
+Welkom bij de repository van de **Cuety** custom component voor Home Assistant. Met deze integratie kun je je Cuety-verlichtingscontroller handmatig koppelen, bedienen en automatiseren binnen je Home Assistant-omgeving.
 
----
+## 📋 Inhoudsopgave
 
-## 💡 How We Discovered the Solution
+* [Functies](#-functies)
+* [Vereisten](#-vereisten)
+* [Handmatige Installatie](#-handmatige-installatie)
+* [Configuratie & Playbacks](#-configuratie--playbacks)
+* [🧪 Testen / Testmodus](#-testen--testmodus)
+* [Ondersteuning & Vragen](#-ondersteuning--vragen)
 
-While attempting to integrate a Cuety device with Home Assistant, initial assumptions pointed toward a raw TCP/UDP socket server running on port 7000 (following the low-level ASCII documentation). 
+## ✨ Functies
 
-However, by running a raw TCP capture and checking the PyCharm terminal logs, we discovered that Home Assistant's `aiohttp` client actually communicates using **standard HTTP requests** directed right at **port 7000**, utilizing the `/ajax/` endpoints (such as `GET /ajax/hello HTTP/1.1`) and expecting structured **JSON responses** like `{"apicall": "succeeded"}`.
+* Configuratie via de Home Assistant gebruikersinterface (Config Flow).
+* Ondersteuning voor knoppen (`button`), schakelaars (`switch`) en numerieke instellingen (`number`).
+* Ingebouwde **Testmodus** om commando's en URL's te verifiëren zonder het fysieke apparaat aan te sturen.
+* Flexibele playback-invoer (enkel getal of bereik).
+* Volledige Nederlandse vertaling (`nl.json`) inbegrepen.
 
-Armed with this insight, we pivoted to a Python `BaseHTTPRequestHandler` server listening on port 7000, perfectly matching the integration's expectations.
+## 🛠️ Vereisten
 
----
+* Een werkende installatie van **Home Assistant** (Core of Supervisor).
+* Een bereikbare Cuety-controller op je lokale netwerk.
 
-## 🛠️ How the Python Script Works
+## 📥 Handmatige Installatie
 
-The script (`virtual_cuety_http_port7000.py`) uses Python's built-in libraries (`http.server` and `json`) so **no external dependencies or `pip` installations are required**.
+Omdat deze integratie handmatig geïnstalleerd dient te worden (en niet via de standaard HACS-store loopt), voeg je de bestanden als volgt toe:
 
-1. **HTTP Server Binding:** Binds an HTTP server to port `7000` on `0.0.0.0` (all local network interfaces).
-2. **Request Routing (`do_GET`):** Parses incoming HTTP request paths:
-   - `/ajax/hello`: Responds with a successful hello handshake payload.
-   - `/ajax/pb...`: Emulates playback intensity, speed, cue, and active states.
-   - `/ajax/blackout`: Mock controls for global blackout states.
-3. **JSON Response Engine:** Automatically replies with HTTP status `200 OK` and a structured JSON body (`{"apicall": "succeeded", ...}`) which satisfies the Home Assistant custom integration parser.
-4. **Console Logging:** Cleanly logs incoming requests and outgoing payloads for real-time debugging.
+1. Download of kloon deze repository naar je computer.
+2. Zorg ervoor dat je de map genaamd `cuety` hebt (deze bevat de bestanden zoals `__init__.py`, `manifest.json`, etc.).
+3. Plaats de map `cuety` in de map `custom_components` van je Home Assistant configuratiemap.
+   * Het volledige pad moet er als volgt uitzien: `/config/custom_components/cuety/`
+4. Herstart je Home Assistant-instantie om de nieuwe component te laden.
 
----
+## ⚙️ Configuratie & Playbacks
 
-## 🚀 How to Use It
+Nadat de bestanden zijn geplaatst en Home Assistant is herstart, kun je de integratie toevoegen:
 
-### Prerequisites
-* Python 3.6 or higher installed on your computer.
-* PyCharm (or any other Python IDE/editor).
+1. Ga naar **Instellingen** → **Apparaten & Diensten** in je Home Assistant dashboard.
+2. Klik rechtsboven op de knop **+ Integratie toevoegen**.
+3. Zoek naar **Cuety** en selecteer deze uit de lijst.
+4. Vul de gewenste gegevens in (zoals Naam, IP-adres en Poort) en klik op **Opslaan**.
 
-### Step 1: Create the Script
-Create a new file named `virtual_cuety.py` in your PyCharm project and paste the code below:
+### 🎛️ Playback configuratie
 
-```python
-from http.server import BaseHTTPRequestHandler, HTTPServer
-import json
-import urllib.parse
+Bij het instellen of wijzigen van de opties (via de knop **Configureren** bij de integratie) geef je de gewenste playbacks op:
 
-class CuetyHttpServerMock(BaseHTTPRequestHandler):
-    def do_GET(self):
-        parsed_path = urllib.parse.urlparse(self.path)
-        path = parsed_path.path
-        
-        print(f"\n[HTTP GET Received] Path: {path}")
-        
-        # Default Cuety API success response
-        response_data = {"apicall": "succeeded"}
-        
-        # Handle specific Cuety HTTP API endpoints
-        if "/ajax/hello" in path:
-            response_data = {"hello": "succeeded", "apicall": "succeeded"}
-            
-        elif "/ajax/pb" in path:
-            if "int" in path:
-                if "=" in path:
-                    val = path.split("=")[-1]
-                    response_data = {"apicall": "succeeded", "intensity": float(val)}
-                else:
-                    response_data = {"apicall": "succeeded", "intensity": 0.5}
-            elif "spd" in path:
-                response_data = {"apicall": "succeeded", "speed": 0.0}
-            elif "cue" in path:
-                response_data = {"apicall": "succeeded", "cue": 1}
-            elif "ac" in path:
-                response_data = {"apicall": "succeeded", "active": 1}
-            else:
-                response_data = {"apicall": "succeeded"}
-                
-        elif "/ajax/blackout" in path:
-            response_data = {"apicall": "succeeded", "blackout": 0}
+* **Enkel getal:** Een getal *N* betekent playbacks 1 t/m *N*. Invullen van `11` genereert dus 11 sets entiteiten.
+* **Bereik:** Je kunt een bereik opgeven, bijvoorbeeld `5-11`.
+* **Lijsten:** Een losse lijst met komma's (zoals `11, 12, 13`) wordt **niet** ondersteund. Schrijf dit als een bereik: `11-13`.
 
-        # Send HTTP 200 OK with JSON body
-        self.send_response(200)
-        self.send_header('Content-Type', 'application/json')
-        self.end_headers()
-        
-        response_json = json.dumps(response_data)
-        self.wfile.write(response_json.encode('utf-8'))
-        print(f"[HTTP Sent JSON] {response_json}")
+> **Voorbeeld bij 11 playbacks:**  
+> Bij het instellen van 11 playbacks worden in totaal **24 entiteiten** aangemaakt:  
+> * 11 schakelaars (playbacks)  
+> * 11 regelaars (intensiteit)  
+> * 1 blackout-schakelaar  
+> * 1 knop om alle playbacks los te laten (*release*)  
+>  
+> De gegenereerde URL's gebruiken automatisch een voorloopnul conform de documentatie (`pb01` t/m `pb11`).
 
-    def do_POST(self):
-        self.do_GET()
+## 🧪 Testen / Testmodus
 
-    def log_message(self, format, *args):
-        # Suppress default noisy server logs for cleaner output
-        return
+In de testmodus reageert de echte Cuety-controller niet. De schakelaars tonen alleen wat Home Assistant zelf heeft ingesteld. Dit is ideaal om te controleren of de integratie de juiste URL-payloads opbouwt.
 
-def run_server(port=7000):
-    server_address = ('0.0.0.0', port)
-    httpd = HTTPServer(server_address, CuetyHttpServerMock)
-    print(f"Virtual Cuety HTTP Mock Server started on port {port}...")
-    print("Waiting for Home Assistant requests...\n")
-    try:
-        httpd.serve_forever()
-    except KeyboardInterrupt:
-        pass
-    httpd.server_close()
-    print("Server stopped.")
+1. **Herstart Home Assistant.**
+2. **Voeg de integratie toe:** Ga naar **Instellingen** → **Apparaten en diensten** → **Integratie toevoegen** en kies **Cuety**.
+   * **Naam:** `Cuety`
+   * **IP:** `192.168.2.29`
+   * **Poort:** `80`
+   * **Testmodus:** Vink de optie *Testmodus aan* aan.
+3. **Configureer playbacks:** Open de integratie, klik op **Configureren** en vul bij playbacks `11` in.
+4. **Controleer gemaakte entiteiten:** Je krijgt nu onder andere:
+   * `switch.cuety_playback_11`
+   * `number.cuety_playback_11_intensiteit`
+   * `switch.cuety_blackout`
+   * `button.cuety_release_alle_playbacks`
+5. **Verifieer logboeken:**  
+   Zet `switch.cuety_playback_11` aan en ga naar **Instellingen** → **Systeem** → **Logboeken**.  
+   Daar zie je de URL die zou worden verstuurd, bijvoorbeeld:  
+   `http://192.168.2.29:80/ajax/pb11/go+`  
+   Als deze overeenkomt met je oude Node-RED payload (`/ajax/pb11/go+`), bouwt de integratie de commando’s correct op.
 
-if __name__ == '__main__':
-    run_server(port=80)
-```
+## 💬 Ondersteuning & Vragen
 
-### Step 2: Run the Mock Server
-1. Open the script in **PyCharm**.
-2. Run the file (`Shift + F10` or click the green Play button).
-3. You should see the message: 
-   `Virtual Cuety HTTP Mock Server started on port 7000...`
-
-### Step 3: Configure Home Assistant
-1. In Home Assistant, navigate to your Cuety integration setup.
-2. Point the host IP to your PC's local IP address (or `127.0.0.1` if Home Assistant runs locally) on **port 7000**.
-3. Watch your PyCharm console log incoming requests and successfully authenticated responses!
-
----
-
-## 📜 License
-This project is open-source and free to use for development and debugging purposes.
+Heb je vragen, loop je tegen een probleem aan of wil je een suggestie doen? Open dan gerust een *Issue* in deze repository!
