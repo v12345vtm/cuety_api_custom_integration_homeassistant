@@ -1,0 +1,10 @@
+{
+  "domain": "cuety",
+  "name": "Cuety (LPU-2)",
+  "config_flow": true,
+  "documentation": "https://api.visualproductions.nl/",
+  "integration_type": "device",
+  "iot_class": "assumed_state",
+  "requirements": [],
+  "version": "1.0.1"
+}

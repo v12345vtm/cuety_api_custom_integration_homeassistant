@@ -1,0 +1,36 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Cuety koppelen",
+        "description": "Vul de gegevens van de Quety (LPU-2) in. Poort 80 is de standaard. Heb je geen Quety bij de hand? Zet dan Testmodus aan.",
+        "data": {
+          "name": "Naam",
+          "host": "IP-adres",
+          "port": "Poort",
+          "demo": "Testmodus (geen Quety nodig)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Kan de Quety niet bereiken. Controleer het IP-adres en het netwerk, of zet Testmodus aan."
+    },
+    "abort": {
+      "already_configured": "Deze Quety is al toegevoegd."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Playbacks",
+        "description": "Geef het aantal playbacks op. Met 11 krijg je playbacks 1 t/m 11. Of geef een bereik op, zoals 5-11. Per playback komt er een schakelaar en een intensiteitsregelaar bij.",
+        "data": {
+          "playbacks": "Aantal of bereik"
+        }
+      }
+    },
+    "error": {
+      "invalid_playbacks": "Ongeldige invoer. Gebruik een getal zoals 11, of een bereik zoals 5-11. Het moet tussen 1 en 99 liggen."
+    }
+  }
+}
