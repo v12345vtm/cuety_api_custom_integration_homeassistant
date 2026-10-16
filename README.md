@@ -2,6 +2,11 @@
 
 Welkom bij de repository van de **Cuety** custom component voor Home Assistant. Met deze integratie kun je je Cuety-verlichtingscontroller handmatig koppelen, bedienen en automatiseren binnen je Home Assistant-omgeving.
 
+
+
+![Afbeelding beschrijving](https://i.imgur.com/qTj6VJn.png)
+
+
 ## 📋 Inhoudsopgave
 
 * [Functies](#-functies)
