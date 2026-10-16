@@ -104,7 +104,7 @@ def run_server(port=7000):
     print("Server stopped.")
 
 if __name__ == '__main__':
-    run_server(port=7000)
+    run_server(port=80)
 ```
 
 ### Step 2: Run the Mock Server
