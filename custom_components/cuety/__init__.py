@@ -1,4 +1,4 @@
-# Cuety-integratie, versie 4.0.0
+# Cuety-integratie, versie 5.0.0
 """Cuety (LPU-2): playbacks, intensiteit en blackout aansturen via de lokale HTTP-API."""
 from __future__ import annotations
 
@@ -11,11 +11,12 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
 from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .api import CueyClient, CueyError
-from .const import CONF_DEMO, CONF_HOST, CONF_PORT, DOMAIN
+from .const import CONF_DEMO, CONF_HOST, CONF_PORT, DOMAIN, antwoord_signal, refresh_signal
 
-PLATFORMS = [Platform.SWITCH, Platform.NUMBER, Platform.BUTTON, Platform.SENSOR]
+PLATFORMS = [Platform.LIGHT, Platform.SWITCH, Platform.BUTTON, Platform.SENSOR]
 
 CueyConfigEntry = ConfigEntry[CueyClient]
 Call = Callable[[CueyClient, dict[str, Any]], Awaitable[Any]]
@@ -74,6 +75,21 @@ SERVICES: dict[str, tuple[dict, Call, bool]] = {
     "raw": ({vol.Required("command"): cv.string}, lambda c, d: c.request(d["command"]), True),
 }
 
+# Na deze services verandert de stand. Daarna halen de lights of de blackout-schakelaar de stand op.
+VERSEN_NA = {
+    "go_plus": "playback",
+    "go_back": "playback",
+    "release": "playback",
+    "jump": "playback",
+    "flash": "playback",
+    "press_button": "playback",
+    "set_intensity": "playback",
+    "change_intensity": "playback",
+    "release_all": "alles",
+    "set_all_intensity": "alles",
+    "blackout": "blackout",
+}
+
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Registreer de services één keer, ook als er meerdere Quety's zijn."""
@@ -81,17 +97,26 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         hass.services.async_register(
             DOMAIN,
             name,
-            _make_handler(hass, func, returns),
+            _make_handler(hass, name, func, returns),
             schema=vol.Schema({**QUETY, **fields}),
             supports_response=SupportsResponse.OPTIONAL if returns else SupportsResponse.NONE,
         )
     return True
 
 
-def _make_handler(hass: HomeAssistant, func: Call, returns: bool):
+def _make_handler(hass: HomeAssistant, name: str, func: Call, returns: bool):
     async def handle(call: ServiceCall) -> ServiceResponse:
         client = _get_client(hass, call.data.get("quety"))
         result = await func(client, call.data)
+        doel = VERSEN_NA.get(name)
+        if doel is not None and client.entry_id:
+            if doel == "playback":
+                payload = call.data.get("playback")
+            elif doel == "alles":
+                payload = None
+            else:
+                payload = "blackout"
+            async_dispatcher_send(hass, refresh_signal(client.entry_id), payload)
         return {"response": result} if returns else None
 
     return handle
@@ -120,6 +145,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: CueyConfigEntry) -> bool
     except CueyError as err:
         raise ConfigEntryNotReady(str(err)) from err
 
+    client.entry_id = entry.entry_id
+    client.antwoord_signal = antwoord_signal(entry.entry_id)
     entry.runtime_data = client
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

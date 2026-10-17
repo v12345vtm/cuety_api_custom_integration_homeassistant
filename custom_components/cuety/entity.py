@@ -1,4 +1,4 @@
-# Cuety-integratie, versie 4.0.0
+# Cuety-integratie, versie 5.0.0
 """Basis voor alle Cuety-entiteiten."""
 from __future__ import annotations
 
@@ -11,11 +11,11 @@ from .const import DOMAIN
 
 
 class CueyEntity(Entity):
-    """Stuurt commando's. De Quety wordt niet uitgelezen, dus HA houdt de stand bij."""
+    """Gedeelde eigenschappen. De stand wordt per entiteit opgehaald, niet vanzelf (geen polling)."""
 
     _attr_has_entity_name = True
     _attr_should_poll = False
-    _attr_assumed_state = True
+    _attr_assumed_state = False
 
     def __init__(self, entry: ConfigEntry, client: CueyClient) -> None:
         self._client = client

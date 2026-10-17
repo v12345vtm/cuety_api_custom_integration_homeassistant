@@ -23,7 +23,7 @@
     "step": {
       "init": {
         "title": "Playbacks",
-        "description": "Geef het aantal playbacks op. Met 11 krijg je playbacks 1 t/m 11. Of geef een bereik op, zoals 5-11. Per playback komt er een schakelaar en een intensiteitsregelaar bij.",
+        "description": "Geef het aantal playbacks op. Met 11 krijg je playbacks 1 t/m 11. Of geef een bereik op, zoals 5-11. Per playback komt er een light bij: aan en uit zijn Go+ en release, de helderheid is de intensiteit.",
         "data": {
           "playbacks": "Aantal of bereik"
         }

@@ -1,6 +1,8 @@
-# Cuety-integratie, versie 4.0.0
-"""Tekstentiteit met het laatste antwoord van de Quety."""
+# Cuety-integratie, versie 5.0.0
+"""Tekstentiteit httpresponse: het antwoord van de Quety op het laatste commando."""
 from __future__ import annotations
+
+from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.core import HomeAssistant, callback
@@ -20,25 +22,24 @@ async def async_setup_entry(
     entry: CueyConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    async_add_entities([CueyLaatsteAntwoordSensor(entry, entry.runtime_data)])
+    async_add_entities([CueyHttpResponseSensor(entry, entry.runtime_data)])
 
 
-class CueyLaatsteAntwoordSensor(CueyEntity, SensorEntity):
-    _attr_name = "Laatste antwoord"
-    _attr_icon = "mdi:message-text-outline"
+class CueyHttpResponseSensor(CueyEntity, SensorEntity):
+    _attr_name = "httpresponse"
+    _attr_icon = "mdi:web"
 
     def __init__(self, entry: CueyConfigEntry, client: CueyClient) -> None:
         super().__init__(entry, client)
-        self._attr_unique_id = f"{entry.entry_id}_laatste_antwoord"
-        self._signal = antwoord_signal(entry.entry_id)
+        self._attr_unique_id = f"{entry.entry_id}_httpresponse"
+        self._attr_native_value = None
         self._commando: str | None = None
         self._volledig: str | None = None
+        self._signal = antwoord_signal(entry.entry_id)
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
-        self.async_on_remove(
-            async_dispatcher_connect(self.hass, self._signal, self._ontvang)
-        )
+        self.async_on_remove(async_dispatcher_connect(self.hass, self._signal, self._ontvang))
 
     @callback
     def _ontvang(self, commando: str, antwoord: str) -> None:

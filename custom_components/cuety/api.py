@@ -1,23 +1,56 @@
-# Cuety-integratie, versie 4.0.0
+# Cuety-integratie, versie 5.0.0
 """Async client voor de Cuety/LPU-2 HTTP-API (https://api.visualproductions.nl/)."""
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
+from typing import Any
 
 import aiohttp
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .const import SPEED
 
 _LOGGER = logging.getLogger(__name__)
 _TIMEOUT = aiohttp.ClientTimeout(total=5)
 
+# Antwoord dat de Testmodus geeft, net als de Quety na een commando zonder waarde.
+DEMO_ANTWOORD = '{"apicall":"succeeded"}'
+
 
 class CueyError(HomeAssistantError):
     """De Quety is niet bereikbaar of gaf een foutmelding."""
+
+
+def waarde_uit_antwoord(tekst: str) -> Any | None:
+    """Haalt de waarde uit een antwoord zoals {"speed":0.20,"apicall":"succeeded"}.
+
+    Geeft None als er geen waarde in zit, of als het antwoord geen JSON is.
+    """
+    try:
+        data = json.loads(tekst)
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    waarden = [waarde for sleutel, waarde in data.items() if sleutel != "apicall"]
+    if len(waarden) != 1 or isinstance(waarden[0], dict):
+        return None
+    return waarden[0]
+
+
+def _controleer(path: str, tekst: str) -> None:
+    """Gooit een fout als de Quety apicall op iets anders dan 'succeeded' zet."""
+    try:
+        data = json.loads(tekst)
+    except (TypeError, ValueError):
+        return
+    if isinstance(data, dict) and "apicall" in data and data["apicall"] != "succeeded":
+        raise CueyError(f"Quety meldde een fout op '{path}': {tekst[:200]}")
 
 
 def _pb(playback: int) -> str:
@@ -31,29 +64,43 @@ def _delta(change: float) -> str:
 
 
 class CueyClient:
-    """Praat met één Quety. Elke methode geeft de tekstrespons terug."""
+    """Praat met één Quety."""
 
     def __init__(self, hass: HomeAssistant, host: str, port: int, demo: bool = False) -> None:
         self.host = host
         self.port = port
         self.demo = demo
+        self.entry_id: str | None = None
+        self.antwoord_signal: str | None = None
+        self._hass = hass
         self._session = async_get_clientsession(hass)
         self._base = f"http://{host}:{port}/ajax"
 
-    async def request(self, command: str) -> str:
+    async def _http_get(self, url: str) -> tuple[int, str]:
+        try:
+            async with self._session.get(url, timeout=_TIMEOUT) as resp:
+                return resp.status, (await resp.text(errors="replace")).strip()
+        except (aiohttp.ClientError, TimeoutError) as err:
+            raise CueyError(f"Quety {self.host}:{self.port} is niet bereikbaar") from err
+
+    async def request(self, command: str, *, poll: bool = False) -> str:
+        """Stuurt een commando. Met poll=True is het een opvraag van de stand.
+
+        Opvragingen komen niet in httpresponse, zodat je het antwoord op je eigen commando ziet.
+        """
         path = command.strip().lstrip("/").removeprefix("ajax/")
         url = f"{self._base}/{path}"
         if self.demo:
             _LOGGER.warning("Testmodus, niets verstuurd. Zou gaan naar GET %s", url)
-            return "demo"
-        _LOGGER.debug("Cuety GET %s", url)
-        try:
-            async with self._session.get(url, timeout=_TIMEOUT) as resp:
-                body = (await resp.text(errors="replace")).strip()
-        except (aiohttp.ClientError, TimeoutError) as err:
-            raise CueyError(f"Quety {self.host}:{self.port} is niet bereikbaar") from err
-        if resp.status >= 400:
-            raise CueyError(f"Quety antwoordde {resp.status} op '{path}': {body[:200]}")
+            body = DEMO_ANTWOORD
+        else:
+            _LOGGER.debug("Cuety GET %s", url)
+            status, body = await self._http_get(url)
+            if status >= 400:
+                raise CueyError(f"Quety antwoordde {status} op '{path}': {body[:200]}")
+        if not poll and self.antwoord_signal:
+            async_dispatcher_send(self._hass, self.antwoord_signal, f"/ajax/{path}", body)
+        _controleer(path, body)
         return body
 
     async def hello(self) -> str:
@@ -62,11 +109,27 @@ class CueyClient:
     async def blackout(self, on: bool) -> str:
         return await self.request(f"blackout={int(on)}")
 
-    async def get_active_cues(self) -> str:
-        return await self.request("pbxx/cue")
+    async def get_blackout(self) -> bool | None:
+        waarde = waarde_uit_antwoord(await self.request("blackout", poll=True))
+        if waarde is None or isinstance(waarde, list):
+            return None
+        return bool(waarde)
 
     async def get_active_status(self) -> str:
         return await self.request("pbxx/ac")
+
+    async def get_playback_active(self, playback: int) -> bool | None:
+        waarde = waarde_uit_antwoord(await self.request(f"{_pb(playback)}/ac", poll=True))
+        if waarde is None or isinstance(waarde, list):
+            return None
+        return bool(waarde)
+
+    async def get_playback_intensity(self, playback: int) -> float | None:
+        waarde = waarde_uit_antwoord(await self.request(f"{_pb(playback)}/int", poll=True))
+        return None if waarde is None else float(waarde)
+
+    async def get_active_cues(self) -> str:
+        return await self.request("pbxx/cue")
 
     async def release_all(self) -> str:
         return await self.request("pbxx/rel")

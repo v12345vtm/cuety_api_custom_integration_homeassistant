@@ -1,4 +1,6 @@
-# Cuety-integratie, versie 4.0.0
+# Cuety-integratie, versie 5.0.0
+"""Constanten en signaalnamen van de Cuety-integratie."""
+
 DOMAIN = "cuety"
 
 CONF_NAME = "name"
@@ -13,6 +15,12 @@ MAX_PLAYBACK = 99
 # De docs noemen het snelheidscommando zowel /spd= als /sp=. Werkt snelheid niet? Zet dit op "sp".
 SPEED = "spd"
 
+
 def antwoord_signal(entry_id: str) -> str:
-    """Signaal waarmee de knoppen het antwoord naar de tekstentiteit sturen."""
+    """Signaal waarmee de client elk antwoord naar de tekstentiteit httpresponse stuurt."""
     return f"{DOMAIN}_antwoord_{entry_id}"
+
+
+def refresh_signal(entry_id: str) -> str:
+    """Signaal waarmee lights en de blackout-schakelaar hun stand opnieuw ophalen."""
+    return f"{DOMAIN}_refresh_{entry_id}"
