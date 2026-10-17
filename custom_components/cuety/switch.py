@@ -1,3 +1,4 @@
+# Cuety-integratie, versie 4.0.0
 """Schakelaars: blackout en per playback (aan = Go+, uit = release)."""
 from __future__ import annotations
 

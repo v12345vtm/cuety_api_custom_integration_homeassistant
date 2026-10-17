@@ -1,3 +1,4 @@
+# Cuety-integratie, versie 4.0.0
 """Async client voor de Cuety/LPU-2 HTTP-API (https://api.visualproductions.nl/)."""
 from __future__ import annotations
 

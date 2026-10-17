@@ -1,3 +1,4 @@
+# Cuety-integratie, versie 4.0.0
 """Intensiteit per playback, 0 tot 100 %."""
 from __future__ import annotations
 

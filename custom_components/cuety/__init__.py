@@ -1,3 +1,4 @@
+# Cuety-integratie, versie 4.0.0
 """Cuety (LPU-2): playbacks, intensiteit en blackout aansturen via de lokale HTTP-API."""
 from __future__ import annotations
 
@@ -14,7 +15,7 @@ from homeassistant.helpers import config_validation as cv
 from .api import CueyClient, CueyError
 from .const import CONF_DEMO, CONF_HOST, CONF_PORT, DOMAIN
 
-PLATFORMS = [Platform.SWITCH, Platform.NUMBER, Platform.BUTTON]
+PLATFORMS = [Platform.SWITCH, Platform.NUMBER, Platform.BUTTON, Platform.SENSOR]
 
 CueyConfigEntry = ConfigEntry[CueyClient]
 Call = Callable[[CueyClient, dict[str, Any]], Awaitable[Any]]
