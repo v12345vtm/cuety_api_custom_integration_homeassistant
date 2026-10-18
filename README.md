@@ -250,7 +250,7 @@ custom_components/
 ## Bronnen
 
 - Handleiding van de Cuety (LPU-2), Appendix A: A.3 (TCP en UDP), A.4 (HTTP-tabel) en A.5 (terugkoppeling via de API).
-- API-documentatie: https://api.visualproductions.nl/
+- API-documentatie: https://api.visualproductions.nl/api/download/633d386c812af574aa076795
 - Forum Homeassistant : https://community.home-assistant.io/t/cuety-lpu-2-for-home-assistant-dmx/1029287
 - Forum Visual productions : https://forum.visualproductions.nl/forum/index.php?topic=7545.msg25082#msg25082
 
