@@ -1,6 +1,6 @@
 # Cuety (LPU-2) voor Home Assistant
 
-**Versie 5.0.0**
+**Versie 5.1.0**
 
 Home Assistant-integratie voor de Visual Productions Quety (LPU-2). De integratie stuurt de playbacks aan via de lokale HTTP-API van de Quety. Per playback krijg je een light, en er zijn een schakelaar voor de blackout, knoppen, een sensor met de antwoorden van de Quety en services voor de commando's uit de API.
 
@@ -9,7 +9,6 @@ Home Assistant-integratie voor de Visual Productions Quety (LPU-2). De integrati
 
 
 ![Afbeelding beschrijving](https://i.imgur.com/qTj6VJn.png)
-
 
 
 ## Wat je krijgt
@@ -43,7 +42,7 @@ Versie 5 vervangt de schakelaar en de intensiteitsregelaar per playback door é�
 
 ### Handmatig
 
-1. Pak `cuety_v5.zip` uit.
+1. Pak `cuety_v5.1.zip` uit.
 2. Kopieer de map `custom_components/cuety` naar de map `custom_components` in je Home Assistant-map `config`. Het resultaat is `config/custom_components/cuety/`.
 3. Herstart Home Assistant volledig. Alleen de integratie herladen is niet genoeg, omdat de Python-code pas bij een herstart opnieuw wordt ingelezen.
 
@@ -100,6 +99,8 @@ De helderheid van Home Assistant (0 t/m 255) wordt omgerekend naar de intensitei
 | `/ajax/pbNN/spd` | `{"speed":0.20,"apicall":"succeeded"}` |
 | `/ajax/blackout=1` | `{"blackout":1,"apicall":"succeeded"}` |
 | `/ajax/pbNN/go+` | `{"apicall":"succeeded"}` |
+| `/ajax/pb10/ac` | `{"ac":0,"apicall":"succeeded"}` (0 is uit, 1 is aan) |
+| `/ajax/pb10/int` | `{"intensity":0.60,"apicall":"succeeded"}` (0 t/m 1) |
 
 Een commando zonder waarde, zoals `go+`, geeft alleen `{"apicall":"succeeded"}` terug. Een opvraag geeft de waarde terug onder de naam van het commando.
 
@@ -107,7 +108,7 @@ Een commando zonder waarde, zoals `go+`, geeft alleen `{"apicall":"succeeded"}` 
 
 **Detectie.** Bij het toevoegen en bij elke start stuurt de integratie `GET /ajax/hello` naar de Quety. Komt er een antwoord zonder foutcode, dan geldt de Quety als gevonden. Bij het toevoegen blijft het formulier dan staan met de melding dat de Quety niet bereikbaar is. Bij het opstarten probeert Home Assistant het later opnieuw.
 
-**Commando's.** Elke actie is een `GET` naar `http://<ip>:<poort>/ajax/<commando>`. Zo betekent `/ajax/pb11/go+` dat playback 11 op Go+ gaat. Playbacks heten altijd met twee cijfers, `pb01` t/m `pb99`.
+**Commando's.** Elke actie is een `GET` naar `http://<ip>:<poort>/ajax/<commando>`. Zo betekent `/ajax/pb11/go+` dat playback 11 op Go+ gaat. Playbacks heten altijd met twee cijfers, `pb01` t/m `pb99`. Verzoeken gaan één voor één naar de Quety, zodat het kleine apparaat niet overbelast raakt.
 
 **Stand.** De lights en de blackout-schakelaar halen de stand op: bij het opstarten, na een eigen commando, na een service die de stand verandert, en na de knoppen Status opvragen en Release alle playbacks. Verandert iemand de stand op de Quety zelf, dan zie je dat pas na het volgende commando of na Status opvragen.
 
@@ -159,13 +160,12 @@ Na een service die de stand verandert, ververst de integratie de light of de sch
 - **Config-flow kon niet geladen worden: 500.** Zoek in Instellingen → Systeem → Logboeken op `cuety`. Controleer ook of de map precies `custom_components/cuety` heet en of Home Assistant volledig is herstart.
 - **Kan de Quety niet bereiken.** Controleer het IP-adres en de poort. Test in een browser met `http://<ip>:<poort>/ajax/hello`. Krijg je geen antwoord, dan ligt het aan het netwerk of aan de poort.
 - **Meerdere Quety's gevonden.** Geef bij de service het veld `quety` mee.
-- **De light toont de verkeerde stand.** Druk op Status opvragen. Test daarna in een browser `http://<ip>:<poort>/ajax/pb10/ac` en `http://<ip>:<poort>/ajax/pb10/int`. Krijg je daar geen waarde terug, meld dat dan via de Issues van de repository, met het antwoord.
+- **De light toont de verkeerde stand.** Druk op Status opvragen. Klopt het dan nog niet, controleer dan in een browser `http://<ip>:<poort>/ajax/pb10/ac` en meld het via de Issues van de repository, met het antwoord.
 - **De light is niet beschikbaar.** Dan geeft de Quety geen antwoord op de opvraag van de stand. Zie hierboven.
 - **Nieuwe playbacks verschijnen niet.** Wacht enkele seconden. De integratie herlaadt zichzelf na het opslaan van de instelling.
 
 ## Bekende beperkingen
 
-- De opvraag van de stand per playback (`/ajax/pbNN/ac` en `/ajax/pbNN/int`) volgt de handleiding (A.5), maar is in versie 5 nog niet op een echte Quety bevestigd. De naam van de waarde in het antwoord is geraden. De integratie neemt daarom het enige getal uit het antwoord.
 - Een wijziging op de Quety zelf zie je pas na een commando of na Status opvragen.
 - De detectie kijkt naar de statuscode van `/ajax/hello`, niet naar de inhoud van het antwoord. Elke server die op dat adres en die poort antwoordt zonder foutcode, telt als Quety.
 - `change_speed` met een negatieve waarde is onzeker. De documentatie gebruikt bij snelheid een min zowel voor een absolute waarde als voor een verlaging. Gebruik voor een vaste snelheid liever `set_speed`.
@@ -182,6 +182,7 @@ Na een service die de stand verandert, ververst de integratie de light of de sch
 
 ## Versiegeschiedenis
 
+- **5.1.0**: de stand per playback is bevestigd op een echte Quety (`/ajax/pbNN/ac` geeft `ac`, `/ajax/pbNN/int` geeft `intensity`). Verzoeken gaan één voor één naar de Quety. README bijgewerkt.
 - **5.0.0**: per playback één light, die de schakelaar en de intensiteitsregelaar vervangt. De antwoorden van de Quety worden als JSON verwerkt. De stand wordt na commando's opgehaald. De sensor heet nu httpresponse en toont het antwoord op elk commando.
 - **4.0.0**: knoppen Hello en Status opvragen, en de sensor Laatste antwoord.
 - **3.0.0**: versienummers in alle bestanden en deze README.
