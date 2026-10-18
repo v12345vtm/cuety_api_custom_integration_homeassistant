@@ -1,18 +1,16 @@
 # Cuety (LPU-2) voor Home Assistant
 
-**Versie 5.1.0**
+![Cuety (LPU-2)](https://i.imgur.com/qTj6VJn.png)
 
-Home Assistant-integratie voor de Visual Productions Quety (LPU-2). De integratie stuurt de playbacks aan via de lokale HTTP-API van de Quety. Per playback krijg je een light, en er zijn een schakelaar voor de blackout, knoppen, een sensor met de antwoorden van de Quety en services voor de commando's uit de API.
+**Versie 5.2.0**
 
+Home Assistant-integratie voor de Visual Productions Quety (LPU-2). De integratie stuurt de playbacks aan via de lokale HTTP-API van de Quety. Per playback krijg je een light. Daarnaast zijn er een schakelaar voor de blackout, knoppen, een sensor met de antwoorden van de Quety en services voor de commando's uit de API. Met de testmodus kun je alles uitproberen zonder Quety.
 
+## Links
 
-
-
-![Afbeelding beschrijving](https://i.imgur.com/qTj6VJn.png)
-a virtual cuety : https://github.com/v12345vtm/cuety_api_custom_integration_homeassistant/blob/main/virtualcuety/virtualcuetyv5_1.py
-github : https://github.com/v12345vtm/cuety_api_custom_integration_homeassistant/tree/main
-issues : https://github.com/v12345vtm/cuety_api_custom_integration_homeassistant/issues
-
+- Repository: https://github.com/v12345vtm/cuety_api_custom_integration_homeassistant
+- Problemen melden: https://github.com/v12345vtm/cuety_api_custom_integration_homeassistant/issues
+- Virtuele Cuety op GitHub: https://github.com/v12345vtm/cuety_api_custom_integration_homeassistant/blob/main/virtualcuety/virtualcuetyv5_1.py
 
 ## Wat je krijgt
 
@@ -39,29 +37,31 @@ Versie 5 vervangt de schakelaar en de intensiteitsregelaar per playback door é�
 ## Vereisten
 
 - Home Assistant 2024.4 of nieuwer
-- Een Quety (LPU-2) op hetzelfde netwerk als Home Assistant, of Testmodus om zonder Quety te testen
+- Een Quety (LPU-2) op hetzelfde netwerk als Home Assistant, of de testmodus
 
 ## Installeren
 
 ### Handmatig
 
-1. Pak `cuety_v5.1.zip` uit.
+1. Pak `cuety_v5.2.zip` uit. Je ziet dan `README.md` en de map `custom_components`.
 2. Kopieer de map `custom_components/cuety` naar de map `custom_components` in je Home Assistant-map `config`. Het resultaat is `config/custom_components/cuety/`.
 3. Herstart Home Assistant volledig. Alleen de integratie herladen is niet genoeg, omdat de Python-code pas bij een herstart opnieuw wordt ingelezen.
 
 Stond er al een eerdere versie in `config/custom_components/cuety/`? Verwijder die map dan eerst, zodat er geen oude bestanden overblijven.
 
+Het bestand `custom_components/virtuele_cuety.py` hoort niet bij de integratie. Het is een losstaand hulpmiddel om een Quety na te bootsen op je pc. Je hoeft het niet naar Home Assistant te kopiëren.
+
 ### Via GitHub en HACS
 
-1. Zet de inhoud van deze zip in een GitHub-repository.
-2. Ga in HACS naar de drie puntjes rechtsboven en kies Aangepaste repositories. Vul de URL van je repository in en kies de categorie Integratie.
+1. Ga in HACS naar de drie puntjes rechtsboven en kies Aangepaste repositories.
+2. Vul als URL in: `https://github.com/v12345vtm/cuety_api_custom_integration_homeassistant` en kies de categorie Integratie.
 3. Download de integratie via HACS en herstart Home Assistant.
 
 ## Integratie toevoegen
 
 1. Ga naar Instellingen → Apparaten en diensten → Integratie toevoegen en zoek op `Cuety`.
 2. Vul de naam in, bijvoorbeeld `Cuety`, het IP-adres van de Quety en de poort. De standaardpoort is 80.
-3. Heb je geen Quety bij de hand? Zet dan **Testmodus** aan. Er gaat dan niets naar het netwerk.
+3. Heb je geen Quety bij de hand? Zet dan **Testmodus** aan. Zie [Testmodus](#testmodus).
 4. Klik bij de integratie op **Configureren** en vul bij **Aantal of bereik** in:
 
 | Invoer | Playbacks |
@@ -73,6 +73,33 @@ Stond er al een eerdere versie in `config/custom_components/cuety/`? Verwijder d
 Een lijst met losse nummers, zoals `11, 12`, wordt niet ondersteund. Gebruik dan `11-12`. Het bereik moet tussen 1 en 99 liggen.
 
 Wil je meer dan één Quety gebruiken? Voeg de integratie dan opnieuw toe, met een andere naam. Lees bij [Services](#services) hoe je dan het veld `quety` gebruikt.
+
+## Testmodus
+
+Met Testmodus gaat er niets naar het netwerk. De integratie heeft dan een ingebouwde simulator (`cuety/virtueel.py`). Die gebruikt dezelfde logica als `virtuele_cuety.py`.
+
+- Lights, schakelaar, knoppen en sensor gedragen zich als bij een echte Quety: aan en uit, de helderheid, Release alle playbacks, de blackout en het antwoord in `httpresponse`.
+- Elke Cuety-entiteit in de testmodus heeft zijn eigen stand. Na een herstart van Home Assistant begint die weer met alles uit.
+
+## Virtuele Cuety (losstaand bestand)
+
+`custom_components/virtuele_cuety.py` is een server die antwoordt als een Quety, op je pc of op een ander apparaat. Gebruik het als je de integratie met echt netwerkverkeer wilt testen, of als je andere programma's op een Quety wilt laten lijken.
+
+Start het in een terminal, in de map `custom_components`:
+
+```
+python virtuele_cuety.py --port 8080
+```
+
+Poort 80, de standaard, kan alleen met admin-rechten. Met `--snapshot` begint de virtuele Cuety met pb3 aan en cue 1 op pb2.
+
+In de integratie vul je dan het IP-adres van je pc in, poort `8080`, en zet je Testmodus uit.
+
+Probeer in je browser: `http://<ip>:8080/ajax/hello`, `/ajax/pb01/go+`, `/ajax/pbxx/ac`, `/ajax/pbxx/rel` en `/mock/state`.
+
+De virtuele Cuety is een nabootsing. Wat op een echte Quety is gezien, staat in de code als GEZIEN. Wat een aanname is, staat als AANNAME, bijvoorbeeld hoe de cue opschuift en hoe lang een knopdruk moet duren om release te worden. Zie je iets dat niet klopt met je echte Quety, meld het dan via de [Issues](https://github.com/v12345vtm/cuety_api_custom_integration_homeassistant/issues).
+
+Let op: de virtuele Cuety op GitHub (`virtualcuetyv5_1.py`) is een oudere versie dan die in deze zip.
 
 ## Lights per playback
 
@@ -99,11 +126,11 @@ De helderheid van Home Assistant (0 t/m 255) wordt omgerekend naar de intensitei
 | `/ajax/status` | `{"label":"MyLPU-2","receiving":{"osc":0,"udp":0,"tcp":0}}` (niet in de handleiding, wel op het apparaat) |
 | `/ajax/pbxx/ac` | `{"ac":[0,0,1,0,…],"apicall":"succeeded"}` (een lijst met een 0 of 1 per playback) |
 | `/ajax/pbxx/cue` | `{"cue":["-",1,"-",…],"apicall":"succeeded"}` |
+| `/ajax/pb10/ac` | `{"ac":0,"apicall":"succeeded"}` (0 is uit, 1 is aan) |
+| `/ajax/pb10/int` | `{"intensity":0.60,"apicall":"succeeded"}` (0 t/m 1) |
 | `/ajax/pbNN/spd` | `{"speed":0.20,"apicall":"succeeded"}` |
 | `/ajax/blackout=1` | `{"blackout":1,"apicall":"succeeded"}` |
 | `/ajax/pbNN/go+` | `{"apicall":"succeeded"}` |
-| `/ajax/pb10/ac` | `{"ac":0,"apicall":"succeeded"}` (0 is uit, 1 is aan) |
-| `/ajax/pb10/int` | `{"intensity":0.60,"apicall":"succeeded"}` (0 t/m 1) |
 
 Een commando zonder waarde, zoals `go+`, geeft alleen `{"apicall":"succeeded"}` terug. Een opvraag geeft de waarde terug onder de naam van het commando.
 
@@ -115,7 +142,7 @@ Een commando zonder waarde, zoals `go+`, geeft alleen `{"apicall":"succeeded"}` 
 
 **Stand.** De lights en de blackout-schakelaar halen de stand op: bij het opstarten, na een eigen commando, na een service die de stand verandert, en na de knoppen Status opvragen en Release alle playbacks. Verandert iemand de stand op de Quety zelf, dan zie je dat pas na het volgende commando of na Status opvragen.
 
-**Testmodus.** De integratie doet alsof er een Quety is. Er gaat niets naar het netwerk, en het antwoord is `{"apicall":"succeeded"}`. De lights houden dan de stand aan die je zelf zet.
+**Testmodus.** Zie [Testmodus](#testmodus). Er gaat niets naar het netwerk; de simulator houdt de stand bij.
 
 ## Services
 
@@ -166,14 +193,16 @@ Na een service die de stand verandert, ververst de integratie de light of de sch
 - **De light toont de verkeerde stand.** Druk op Status opvragen. Klopt het dan nog niet, controleer dan in een browser `http://<ip>:<poort>/ajax/pb10/ac` en meld het via de Issues van de repository, met het antwoord.
 - **De light is niet beschikbaar.** Dan geeft de Quety geen antwoord op de opvraag van de stand. Zie hierboven.
 - **Nieuwe playbacks verschijnen niet.** Wacht enkele seconden. De integratie herlaadt zichzelf na het opslaan van de instelling.
+- **In de testmodus klopt een antwoord niet met je echte Quety.** De testmodus volgt dezelfde logica als de virtuele Cuety, en die bevat aannames. Meld het via de Issues.
 
 ## Bekende beperkingen
 
-- Een wijziging op de Quety zelf zie je pas na een commando of na Status opvragen.
 - De detectie kijkt naar de statuscode van `/ajax/hello`, niet naar de inhoud van het antwoord. Elke server die op dat adres en die poort antwoordt zonder foutcode, telt als Quety.
+- Een wijziging op de Quety zelf zie je pas na een commando of na Status opvragen.
 - `change_speed` met een negatieve waarde is onzeker. De documentatie gebruikt bij snelheid een min zowel voor een absolute waarde als voor een verlaging. Gebruik voor een vaste snelheid liever `set_speed`.
 - De documentatie gebruikt soms een en-dash (–) in plaats van een min. De integratie stuurt altijd een gewone min.
 - Playback 00 wordt niet gebruikt. Het maximum van 99 is een aanname.
+- De testmodus en de virtuele Cuety zijn nabootsingen. Hun aannames (zie AANNAME in de code) kloppen niet altijd met een echte Quety.
 - Niet op alle versies van Home Assistant getest.
 
 ## TODO
@@ -185,6 +214,7 @@ Na een service die de stand verandert, ververst de integratie de light of de sch
 
 ## Versiegeschiedenis
 
+- **5.2.0**: de testmodus gebruikt een ingebouwde simulator met dezelfde logica als de virtuele Cuety. Lights, release alle playbacks, blackout en httpresponse werken daardoor ook in de testmodus. De virtuele Cuety zit nu in de zip, naast de cuety-map. Afbeelding en links in de README en het manifest.
 - **5.1.0**: de stand per playback is bevestigd op een echte Quety (`/ajax/pbNN/ac` geeft `ac`, `/ajax/pbNN/int` geeft `intensity`). Verzoeken gaan één voor één naar de Quety. README bijgewerkt.
 - **5.0.0**: per playback één light, die de schakelaar en de intensiteitsregelaar vervangt. De antwoorden van de Quety worden als JSON verwerkt. De stand wordt na commando's opgehaald. De sensor heet nu httpresponse en toont het antwoord op elk commando.
 - **4.0.0**: knoppen Hello en Status opvragen, en de sensor Laatste antwoord.
@@ -195,23 +225,28 @@ Na een service die de stand verandert, ververst de integratie de light of de sch
 ## Structuur
 
 ```
-custom_components/cuety/
-├── __init__.py            services en het opzetten van de integratie
-├── api.py                 HTTP-client voor de Quety, met verwerking van het JSON-antwoord
-├── button.py              knoppen: release, hello en status opvragen
-├── config_flow.py         installatie en opties
-├── const.py               constanten en signaalnamen
-├── entity.py              basis voor alle entiteiten
-├── light.py               light per playback
-├── manifest.json          naam, domein en versie
-├── sensor.py              httpresponse, het antwoord van de Quety op het laatste commando
-├── switch.py              blackout
-└── translations/nl.json   teksten in het Nederlands
+README.md                                 deze uitleg
+custom_components/
+├── cuety/                                de integratie
+│   ├── __init__.py                       services en het opzetten van de integratie
+│   ├── api.py                            HTTP-client, met de testmodus
+│   ├── button.py                         knoppen: release, hello en status opvragen
+│   ├── config_flow.py                    installatie en opties
+│   ├── const.py                          constanten en signaalnamen
+│   ├── entity.py                         basis voor alle entiteiten
+│   ├── light.py                          light per playback
+│   ├── manifest.json                     naam, domein, versie en links
+│   ├── sensor.py                         httpresponse
+│   ├── switch.py                         blackout
+│   ├── virtueel.py                       simulator voor de testmodus
+│   └── translations/nl.json              teksten in het Nederlands
+└── virtuele_cuety.py                     losstaande virtuele Cuety, niet voor Home Assistant
 ```
 
 ## Bronnen
 
 - Handleiding van de Quety (LPU-2), Appendix A: A.3 (TCP en UDP), A.4 (HTTP-tabel) en A.5 (terugkoppeling via de API).
+- API-documentatie: https://api.visualproductions.nl/
 
 ## Licentie
 
