@@ -12,6 +12,10 @@ Home Assistant-integratie voor de Visual Productions Quety (LPU-2). De integrati
 - Problemen melden: https://github.com/v12345vtm/cuety_api_custom_integration_homeassistant/issues
 - Virtuele Cuety op GitHub: [virtual](https://raw.githubusercontent.com/v12345vtm/cuety_api_custom_integration_homeassistant/refs/heads/main/custom_components/virtuele_cuety.py)
 
+
+Products : https://www.visualproductions.nl/products/
+
+
 ## Wat je krijgt
 
 Per Quety, met de naam `Cuety` als voorbeeld:
