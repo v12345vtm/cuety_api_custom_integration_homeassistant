@@ -9,7 +9,7 @@ Home Assistant-integratie voor de Visual Productions Quety (LPU-2). De integrati
 
 
 ![Afbeelding beschrijving](https://i.imgur.com/qTj6VJn.png)
-
+a virtual cuety : https://github.com/v12345vtm/cuety_api_custom_integration_homeassistant/blob/main/virtualcuety/virtualcuetyv5_1.py
 
 ## Wat je krijgt
 
