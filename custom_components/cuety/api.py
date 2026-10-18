@@ -1,4 +1,4 @@
-# Cuety-integratie, versie 5.0.0
+# Cuety-integratie, versie 5.1.0
 """Async client voor de Cuety/LPU-2 HTTP-API (https://api.visualproductions.nl/)."""
 from __future__ import annotations
 
@@ -75,13 +75,16 @@ class CueyClient:
         self._hass = hass
         self._session = async_get_clientsession(hass)
         self._base = f"http://{host}:{port}/ajax"
+        # Eén verzoek tegelijk: de Quety is een klein apparaat.
+        self._lock = asyncio.Lock()
 
     async def _http_get(self, url: str) -> tuple[int, str]:
-        try:
-            async with self._session.get(url, timeout=_TIMEOUT) as resp:
-                return resp.status, (await resp.text(errors="replace")).strip()
-        except (aiohttp.ClientError, TimeoutError) as err:
-            raise CueyError(f"Quety {self.host}:{self.port} is niet bereikbaar") from err
+        async with self._lock:
+            try:
+                async with self._session.get(url, timeout=_TIMEOUT) as resp:
+                    return resp.status, (await resp.text(errors="replace")).strip()
+            except (aiohttp.ClientError, TimeoutError) as err:
+                raise CueyError(f"Quety {self.host}:{self.port} is niet bereikbaar") from err
 
     async def request(self, command: str, *, poll: bool = False) -> str:
         """Stuurt een commando. Met poll=True is het een opvraag van de stand.

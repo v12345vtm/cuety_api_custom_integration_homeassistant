@@ -1,4 +1,4 @@
-# Cuety-integratie, versie 5.0.0
+# Cuety-integratie, versie 5.1.0
 """Tekstentiteit httpresponse: het antwoord van de Quety op het laatste commando."""
 from __future__ import annotations
 

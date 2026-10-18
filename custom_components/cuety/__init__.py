@@ -1,4 +1,4 @@
-# Cuety-integratie, versie 5.0.0
+# Cuety-integratie, versie 5.1.0
 """Cuety (LPU-2): playbacks, intensiteit en blackout aansturen via de lokale HTTP-API."""
 from __future__ import annotations
 

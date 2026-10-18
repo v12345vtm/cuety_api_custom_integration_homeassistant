@@ -1,4 +1,4 @@
-# Cuety-integratie, versie 5.0.0
+# Cuety-integratie, versie 5.1.0
 """Constanten en signaalnamen van de Cuety-integratie."""
 
 DOMAIN = "cuety"

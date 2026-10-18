@@ -1,4 +1,4 @@
-# Cuety-integratie, versie 5.0.0
+# Cuety-integratie, versie 5.1.0
 """Light per playback: aan is Go+, uit is release, de helderheid is de intensiteit."""
 from __future__ import annotations
 

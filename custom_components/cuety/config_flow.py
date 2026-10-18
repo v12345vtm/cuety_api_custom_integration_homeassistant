@@ -1,4 +1,4 @@
-# Cuety-integratie, versie 5.0.0
+# Cuety-integratie, versie 5.1.0
 """Installatie en opties van de Cuety-integratie."""
 from __future__ import annotations
 
