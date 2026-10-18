@@ -1,4 +1,4 @@
-# Cuety-integratie, versie 5.1.0
+# Cuety-integratie, versie 5.2.0
 """Async client voor de Cuety/LPU-2 HTTP-API (https://api.visualproductions.nl/)."""
 from __future__ import annotations
 
@@ -14,12 +14,10 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .const import SPEED
+from .virtueel import VirtueleQuety
 
 _LOGGER = logging.getLogger(__name__)
 _TIMEOUT = aiohttp.ClientTimeout(total=5)
-
-# Antwoord dat de Testmodus geeft, net als de Quety na een commando zonder waarde.
-DEMO_ANTWOORD = '{"apicall":"succeeded"}'
 
 
 class CueyError(HomeAssistantError):
@@ -64,7 +62,7 @@ def _delta(change: float) -> str:
 
 
 class CueyClient:
-    """Praat met één Quety."""
+    """Praat met één Quety: via HTTP, of in de testmodus met de ingebouwde simulator."""
 
     def __init__(self, hass: HomeAssistant, host: str, port: int, demo: bool = False) -> None:
         self.host = host
@@ -77,6 +75,8 @@ class CueyClient:
         self._base = f"http://{host}:{port}/ajax"
         # Eén verzoek tegelijk: de Quety is een klein apparaat.
         self._lock = asyncio.Lock()
+        # De testmodus heeft een eigen stand, zodat lichten en knoppen zich gedragen als bij een echte Quety.
+        self._simulator = VirtueleQuety() if demo else None
 
     async def _http_get(self, url: str) -> tuple[int, str]:
         async with self._lock:
@@ -87,22 +87,18 @@ class CueyClient:
                 raise CueyError(f"Quety {self.host}:{self.port} is niet bereikbaar") from err
 
     async def request(self, command: str, *, poll: bool = False) -> str:
-        """Stuurt een commando. Met poll=True is het een opvraag van de stand.
-
-        Opvragingen komen niet in httpresponse, zodat je het antwoord op je eigen commando ziet.
-        """
+        """Stuurt een commando. Met poll=True is het een opvraag van de stand, die niet in httpresponse komt."""
         path = command.strip().lstrip("/").removeprefix("ajax/")
-        url = f"{self._base}/{path}"
         if self.demo:
-            _LOGGER.warning("Testmodus, niets verstuurd. Zou gaan naar GET %s", url)
-            body = DEMO_ANTWOORD
+            status, body = self._simulator.handle(f"/ajax/{path}")
+            _LOGGER.debug("Testmodus: /ajax/%s -> %s %s", path, status, body)
         else:
-            _LOGGER.debug("Cuety GET %s", url)
-            status, body = await self._http_get(url)
-            if status >= 400:
-                raise CueyError(f"Quety antwoordde {status} op '{path}': {body[:200]}")
+            _LOGGER.debug("Cuety GET %s/%s", self._base, path)
+            status, body = await self._http_get(f"{self._base}/{path}")
         if not poll and self.antwoord_signal:
             async_dispatcher_send(self._hass, self.antwoord_signal, f"/ajax/{path}", body)
+        if status >= 400:
+            raise CueyError(f"Quety antwoordde {status} op '{path}': {body[:200]}")
         _controleer(path, body)
         return body
 
@@ -129,7 +125,9 @@ class CueyClient:
 
     async def get_playback_intensity(self, playback: int) -> float | None:
         waarde = waarde_uit_antwoord(await self.request(f"{_pb(playback)}/int", poll=True))
-        return None if waarde is None else float(waarde)
+        if waarde is None or isinstance(waarde, list):
+            return None
+        return float(waarde)
 
     async def get_active_cues(self) -> str:
         return await self.request("pbxx/cue")

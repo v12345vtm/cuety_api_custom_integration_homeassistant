@@ -1,4 +1,4 @@
-# Cuety-integratie, versie 5.1.0
+# Cuety-integratie, versie 5.2.0
 """Schakelaar voor de blackout van de Quety."""
 from __future__ import annotations
 

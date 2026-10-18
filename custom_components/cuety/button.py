@@ -1,4 +1,4 @@
-# Cuety-integratie, versie 5.1.0
+# Cuety-integratie, versie 5.2.0
 """Knoppen: release alle playbacks, hello en status opvragen."""
 from __future__ import annotations
 
