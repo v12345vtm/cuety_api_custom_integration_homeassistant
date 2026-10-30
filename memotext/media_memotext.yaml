@@ -1,9 +1,9 @@
 blueprint:
-  name: Update Globale Media Info en Memotekst
+  name: Update Media Info en Memotekst (Universeel)
   description: >
-    Pusht media info (kanaal, artiest, titel) naar input_text-helpers én
-    memotekst wanneer de gekozen mediaplayer op 'playing' staat en de artiest
-    bekend is. Maakt alles leeg zodra de speler stopt of niet aanwezig is.
+    Pusht media info (kanaal, artiest, titel) naar helpers én memotekst voor 
+    elke mediaplayer. Maakt alles leeg zodra de speler stopt. Ondersteunt zowel 
+    input_text als text entiteiten.
   domain: automation
   input:
     media_player_entity:
@@ -13,13 +13,13 @@ blueprint:
         entity:
           domain: media_player
     memotext_entity:
-      name: Memotekst (text entity)
-      description: De text-entity waarin de memotekst wordt geplaatst.
+      name: Memotekst
+      description: De text- of input_text-entity waarin de memotekst wordt geplaatst.
       selector:
         entity:
           domain:
-            - input_text
             - text
+            - input_text
     global_channel_entity:
       name: Helper – Globaal kanaal
       description: input_text-helper voor het kanaal.
@@ -48,14 +48,21 @@ blueprint:
 trigger:
   - platform: state
     entity_id: !input media_player_entity
+  - platform: state
+    entity_id: !input media_player_entity
+    attribute: media_title
+  - platform: state
+    entity_id: !input media_player_entity
+    attribute: media_artist
 
 action:
   - variables:
       player: !input media_player_entity
       memotext: !input memotext_entity
-      helper_channel: !input global_channel_entity
-      helper_artist: !input global_artist_entity
-      helper_title: !input global_title_entity
+      text_value: >-
+        {{ state_attr(player, 'media_artist') }} - {{
+        state_attr(player, 'media_title') | default('', true) }}
+  
   - choose:
       # ── Speler speelt én artiest is bekend ──────────────────────────────
       - conditions:
@@ -64,16 +71,17 @@ action:
             state: "playing"
           - condition: template
             value_template: >-
-              {{ state_attr(player, 'media_artist') not in [None,
-              'None', ''] }}
+              {{ state_attr(player, 'media_artist') not in [None, 'None', ''] }}
         sequence:
+          # Korte delay van 1 seconde voor netwerkspelers
+          - delay: "00:00:00"
+          
           - action: input_text.set_value
             target:
               entity_id: !input global_channel_entity
             data:
               value: >-
-                {{ state_attr(player, 'media_channel') |
-                default('', true) }}
+                {{ state_attr(player, 'media_channel') | default('', true) }}
           - action: input_text.set_value
             target:
               entity_id: !input global_artist_entity
@@ -84,16 +92,25 @@ action:
               entity_id: !input global_title_entity
             data:
               value: >-
-                {{ state_attr(player, 'media_title') |
-                default('', true) }}
-          - action: text.set_value
-            target:
-              entity_id: !input memotext_entity
-            data:
-              value: >-
-                {{ state_attr(player, 'media_artist') }} - {{
-                state_attr(player, 'media_title') | default('',
-                true) }}
+                {{ state_attr(player, 'media_title') | default('', true) }}
+          
+          # SLIMME ACTIE: Kijkt of het een input_text of text entiteit is
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ 'input_text' in memotext }}"
+                sequence:
+                  - action: input_text.set_value
+                    target:
+                      entity_id: !input memotext_entity
+                    data:
+                      value: "{{ text_value }}"
+            default:
+              - action: text.set_value
+                target:
+                  entity_id: !input memotext_entity
+                data:
+                  value: "{{ text_value }}"
 
       # ── Speler speelt niet (gepauzeerd, gestopt, off, unavailable) ──────
       - conditions:
@@ -115,10 +132,23 @@ action:
               entity_id: !input global_title_entity
             data:
               value: ""
-          - action: text.set_value
-            target:
-              entity_id: !input memotext_entity
-            data:
-              value: ""
+          
+          # SLIMME ACTIE VOOR LEEGMAKEN
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ 'input_text' in memotext }}"
+                sequence:
+                  - action: input_text.set_value
+                    target:
+                      entity_id: !input memotext_entity
+                    data:
+                      value: ""
+            default:
+              - action: text.set_value
+                target:
+                  entity_id: !input memotext_entity
+                data:
+                  value: ""
 
 mode: single
