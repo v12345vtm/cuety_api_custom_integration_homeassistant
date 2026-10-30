@@ -1,0 +1,122 @@
+blueprint:
+  name: Update Globale Media Info en Memotekst
+  description: >
+    Pusht media info (kanaal, artiest, titel) naar input_text-helpers én
+    memotekst wanneer de gekozen mediaplayer op 'playing' staat en de artiest
+    bekend is. Maakt alles leeg zodra de speler stopt of niet aanwezig is.
+  domain: automation
+  input:
+    media_player_entity:
+      name: Mediaplayer
+      description: De mediaplayer die gevolgd moet worden.
+      selector:
+        entity:
+          domain: media_player
+    memotext_entity:
+      name: Memotekst (text entity)
+      description: De text-entity waarin de memotekst wordt geplaatst.
+      selector:
+        entity:
+          domain: text
+    global_channel_entity:
+      name: Helper – Globaal kanaal
+      description: input_text-helper voor het kanaal.
+      selector:
+        entity:
+          domain:
+            - input_text
+            - text
+    global_artist_entity:
+      name: Helper – Globaal artiest
+      description: input_text-helper voor de artiest.
+      selector:
+        entity:
+          domain:
+            - input_text
+            - text
+    global_title_entity:
+      name: Helper – Globaal titel
+      description: input_text-helper voor de titel.
+      selector:
+        entity:
+          domain:
+            - input_text
+            - text
+
+trigger:
+  - platform: state
+    entity_id: !input media_player_entity
+
+action:
+  - variables:
+      player: !input media_player_entity
+      memotext: !input memotext_entity
+      helper_channel: !input global_channel_entity
+      helper_artist: !input global_artist_entity
+      helper_title: !input global_title_entity
+  - choose:
+      # ── Speler speelt én artiest is bekend ──────────────────────────────
+      - conditions:
+          - condition: state
+            entity_id: !input media_player_entity
+            state: "playing"
+          - condition: template
+            value_template: >-
+              {{ state_attr(player, 'media_artist') not in [None,
+              'None', ''] }}
+        sequence:
+          - action: input_text.set_value
+            target:
+              entity_id: !input global_channel_entity
+            data:
+              value: >-
+                {{ state_attr(player, 'media_channel') |
+                default('', true) }}
+          - action: input_text.set_value
+            target:
+              entity_id: !input global_artist_entity
+            data:
+              value: "{{ state_attr(player, 'media_artist') }}"
+          - action: input_text.set_value
+            target:
+              entity_id: !input global_title_entity
+            data:
+              value: >-
+                {{ state_attr(player, 'media_title') |
+                default('', true) }}
+          - action: text.set_value
+            target:
+              entity_id: !input memotext_entity
+            data:
+              value: >-
+                {{ state_attr(player, 'media_artist') }} - {{
+                state_attr(player, 'media_title') | default('',
+                true) }}
+
+      # ── Speler speelt niet (gepauzeerd, gestopt, off, unavailable) ──────
+      - conditions:
+          - condition: template
+            value_template: "{{ states(player) not in ['playing'] }}"
+        sequence:
+          - action: input_text.set_value
+            target:
+              entity_id: !input global_channel_entity
+            data:
+              value: ""
+          - action: input_text.set_value
+            target:
+              entity_id: !input global_artist_entity
+            data:
+              value: ""
+          - action: input_text.set_value
+            target:
+              entity_id: !input global_title_entity
+            data:
+              value: ""
+          - action: text.set_value
+            target:
+              entity_id: !input memotext_entity
+            data:
+              value: ""
+
+mode: single
