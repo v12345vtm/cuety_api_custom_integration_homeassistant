@@ -17,7 +17,9 @@ blueprint:
       description: De text-entity waarin de memotekst wordt geplaatst.
       selector:
         entity:
-          domain: text
+          domain:
+            - input_text
+            - text
     global_channel_entity:
       name: Helper – Globaal kanaal
       description: input_text-helper voor het kanaal.
